@@ -6,6 +6,8 @@ Production-ready Node.js backend for an AI-powered Resume Analyzer SaaS. Accepts
 
 - Node.js 18+
 - A Google Gemini API key
+- Firebase project with Authentication enabled
+- Firebase service account credentials for backend token verification
 
 ## Setup (local)
 
@@ -15,7 +17,12 @@ npm install
 cp .env.example .env
 ```
 
-Set `GEMINI_API_KEY` in `.env`.
+Set these values in `.env`:
+
+- `GEMINI_API_KEY`
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (single-line JSON string for a Firebase service account key), or
+- `FIREBASE_SERVICE_ACCOUNT_PATH` (absolute path to a Firebase service account JSON file)
+- `CORS_ALLOWED_ORIGIN` (optional, defaults to `http://localhost:3000`)
 
 Run locally:
 
@@ -33,6 +40,8 @@ curl -s http://localhost:8080/healthz
 
 ### POST `/analyze`
 
+Requires header: `Authorization: Bearer <firebase_id_token>`
+
 Request body (JSON):
 
 ```json
@@ -47,6 +56,7 @@ Example:
 ```bash
 curl -sS -X POST "http://localhost:8080/analyze" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_FIREBASE_ID_TOKEN" \
   -d '{
     "resumeText": "Software Engineer\\n- Built REST APIs in Node.js\\n- Improved CI pipelines",
     "jobDescription": "We need a Node.js engineer with REST API experience, CI/CD, and cloud deployment."
@@ -67,11 +77,13 @@ Successful response schema:
 Errors:
 
 - `400` validation errors (missing inputs)
+- `401` missing or invalid Firebase auth token
 - `502` Gemini failures or malformed AI output
 
 ### POST `/parse`
 
 Parses resume text into sectioned, schema-validated JSON. This endpoint does not require a job description.
+Requires header: `Authorization: Bearer <firebase_id_token>`
 
 Request body (JSON):
 
@@ -139,11 +151,16 @@ Behavior:
 Errors:
 
 - `400 INVALID_INPUT`
+- `401 AUTH_REQUIRED | AUTH_INVALID`
 - `500 PARSE_FAILED` (when Gemini parsing fails)
 
 ## Environment variables
 
 - `GEMINI_API_KEY` (required): Gemini API key
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (optional): Firebase service account JSON string used by `firebase-admin`
+- `FIREBASE_SERVICE_ACCOUNT_PATH` (optional): absolute path to Firebase service account JSON file
+  - At least one of `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_SERVICE_ACCOUNT_PATH` is required.
+- `CORS_ALLOWED_ORIGIN` (optional): comma-separated list of allowed frontend origins (default `http://localhost:3000`)
 - `PORT` (optional): defaults to `8080` (Cloud Run standard)
 
 ## Docker (Cloud Run ready)

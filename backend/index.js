@@ -7,6 +7,7 @@ require("./config/env");
 const analyzeRoute = require("./routes/analyze");
 const parseRoute = require("./routes/parse");
 const exportRoute = require("./routes/export");
+const requireAuth = require("./middleware/requireAuth");
 
 const app = express();
 
@@ -21,13 +22,25 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors());
+const corsAllowedOrigin = process.env.CORS_ALLOWED_ORIGIN || "http://localhost:3000";
+const corsOrigins = corsAllowedOrigin
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/healthz", (req, res) => res.status(200).json({ ok: true }));
-app.use("/analyze", analyzeRoute);
-app.use("/parse", parseRoute);
-app.use("/export", exportRoute);
+app.use("/analyze", requireAuth, analyzeRoute);
+app.use("/parse", requireAuth, parseRoute);
+app.use("/export", requireAuth, exportRoute);
 
 // 404
 app.use((req, res) => {

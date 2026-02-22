@@ -775,8 +775,11 @@ function generateResumeHtml(resume) {
   const sections = [];
 
   if (hasDynamicSelection) {
+    const renderedCanonicalKinds = new Set();
+
     dynamicSections.forEach((section) => {
       if (section.kind === 'header') return;
+      if (section.kind !== 'custom' && renderedCanonicalKinds.has(section.kind)) return;
 
       let contentHtml = '';
       const linesHtml = renderLinesAsBlock(section.lines);
@@ -807,6 +810,7 @@ function generateResumeHtml(resume) {
       if (!isNonEmptyText(contentHtml)) return;
 
       sections.push(renderCanonicalSection(section.kind, section.title || titleFromKind(section.kind), contentHtml));
+      if (section.kind !== 'custom') renderedCanonicalKinds.add(section.kind);
     });
   } else {
     if (isNonEmptyText(summaryHtml)) {

@@ -130,6 +130,60 @@ test('generateResumeHtml respects selected dynamic sections and renders custom/p
   assert.equal(html.includes('<h2>Professional Experience</h2>'), false);
 });
 
+test('generateResumeHtml de-duplicates duplicate canonical project sections', () => {
+  const resume = {
+    basics: {
+      name: 'Luka Petrovic',
+      email: 'luka.petrovic.ba@gmail.com',
+    },
+    work: [],
+    education: [],
+    awards: [],
+    skills: {},
+    languages: [],
+    projects: [
+      {
+        name: 'FinTech LAB Student project (Process Analysis Project)',
+        technologies: [],
+        highlights: ['Process modelling using BPMN diagrams'],
+      },
+      {
+        name: 'Portfolio reporting dashboard',
+        technologies: ['Excel'],
+        highlights: ['Automated trade reconciliation checks'],
+      },
+    ],
+    sections: [
+      { id: 'canonical-header', title: 'Header', kind: 'header', lines: ['Luka Petrovic'] },
+      {
+        id: 'sec_uni_projects',
+        title: 'UNIVERSITY PROJECT EXPERIENCE',
+        kind: 'projects',
+        lines: ['FinTech LAB Student project (Process Analysis Project)'],
+      },
+      {
+        id: 'sec_add_projects',
+        title: 'ADDITIONAL PROJECT',
+        kind: 'projects',
+        lines: ['Portfolio reporting dashboard (Excel based)'],
+      },
+    ],
+    sectionOrder: ['canonical-header', 'sec_uni_projects', 'sec_add_projects'],
+  };
+
+  const html = generateResumeHtml(resume);
+  const projectsSectionCount = (html.match(/class="section section-projects"/g) || []).length;
+
+  assert.equal(projectsSectionCount, 1);
+  assert.equal(html.includes('<h2>UNIVERSITY PROJECT EXPERIENCE</h2>'), true);
+  assert.equal(html.includes('<h2>ADDITIONAL PROJECT</h2>'), false);
+  assert.equal(
+    (html.match(/FinTech LAB Student project \(Process Analysis Project\)/g) || []).length,
+    1
+  );
+  assert.equal((html.match(/Portfolio reporting dashboard/g) || []).length, 1);
+});
+
 test('generateResumeHtml preserves selected dynamic section order', () => {
   const resume = {
     basics: {
